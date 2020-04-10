@@ -1,12 +1,40 @@
 import 'source-map-support/register'
 
-import { APIGatewayProxyEvent, APIGatewayProxyHandler, APIGatewayProxyResult } from 'aws-lambda'
+import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda'
+import * as middy from 'middy';
+import { cors } from 'middy/middlewares';
 
-import { CreateTodoRequest } from '../../requests/CreateTodoRequest'
+import { CreateTodoRequest } from '../../requests/CreateTodoRequest';
+import { createTodo } from '../../businessLogic/todos';
+import { createLogger } from '../../utils/logger';
+import { inspect } from 'util';
 
-export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
-  const newTodo: CreateTodoRequest = JSON.parse(event.body)
+const logger = createLogger('createTodo');
 
-  // TODO: Implement creating a new TODO item
-  return undefined
-}
+export const handler = middy(async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
+  logger.info(`Processing createTodo request: ${inspect(event, {depth: null})}`);
+
+  try {
+    const newTodoRequest: CreateTodoRequest = JSON.parse(event.body);
+
+    const newTodo = await createTodo(newTodoRequest, event);
+
+    return {
+      statusCode: 201,
+      body: JSON.stringify({
+        item: newTodo
+      })
+    };
+  }
+  catch(ex) {
+    logger.error(`Unable to create the todo. Error: ${ex.toString()}`);
+    return {
+      statusCode: 500,
+      body: `Unable to create the todo.`
+    };
+  }
+})
+
+handler.use(cors({
+  credentials: true
+}));

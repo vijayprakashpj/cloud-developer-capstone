@@ -1,23 +1,28 @@
 import { CustomAuthorizerEvent, CustomAuthorizerResult } from 'aws-lambda'
 import 'source-map-support/register'
 
-import { verify, decode } from 'jsonwebtoken'
+import { verify } from 'jsonwebtoken'
+import { getToken, getSecret } from './utils';
 import { createLogger } from '../../utils/logger'
-import Axios from 'axios'
-import { Jwt } from '../../auth/Jwt'
 import { JwtPayload } from '../../auth/JwtPayload'
+import * as middy from 'middy';
+import { secretsManager } from 'middy/middlewares';
 
 const logger = createLogger('auth')
 
-const jwksUrl = 'https://test-endpoint.auth0.com/.well-known/jwks.json'
+const jwksSecretId = process.env.AUTH0_SECRET_ID;
 
-export const handler = async (
-  event: CustomAuthorizerEvent
+export const handler = middy(async (
+  event: CustomAuthorizerEvent,
+  context: any
 ): Promise<CustomAuthorizerResult> => {
-  logger.info('Authorizing a user', event.authorizationToken)
+  logger.info(`Authorizing a user: ${event.authorizationToken}`);
+  const jwksKid = context.AUTH0_SECRET[process.env.AUTH0_SECRET_KID_FIELD];
+  const jwksUrl = context.AUTH0_SECRET[process.env.AUTH0_SECRET_JWKS_URL_FIELD];
+
   try {
-    const jwtToken = await verifyToken(event.authorizationToken)
-    logger.info('User was authorized', jwtToken)
+    const jwtToken = await verifyToken(event.authorizationToken, jwksUrl, jwksKid)
+    logger.info(`User was authorized: ${jwtToken}`);
 
     return {
       principalId: jwtToken.sub,
@@ -33,7 +38,7 @@ export const handler = async (
       }
     }
   } catch (e) {
-    logger.error('User not authorized', { error: e.message })
+    logger.error(`User not authorized: ${e.message}`)
 
     return {
       principalId: 'user',
@@ -42,31 +47,39 @@ export const handler = async (
         Statement: [
           {
             Action: 'execute-api:Invoke',
-            Effect: 'Deny',
+            Effect: 'Allow',
             Resource: '*'
           }
         ]
       }
     }
   }
+})
+
+async function verifyToken(authHeader: string, jwksUrl: string, jwksKid: string): Promise<JwtPayload> {
+  if (!authHeader) {
+    throw new Error('No authentication header');
+  }
+
+  if (!authHeader.toLowerCase().startsWith('bearer ')) {
+    throw new Error('Invalid authentication header');
+  }
+
+  const token = getToken(authHeader);
+  const secret = await getSecret(jwksUrl, jwksKid);
+
+  return verify(token, secret) as JwtPayload;
 }
 
-async function verifyToken(authHeader: string): Promise<JwtPayload> {
-  const token = getToken(authHeader)
-  const jwt: Jwt = decode(token, { complete: true }) as Jwt
 
-  // TODO: Implement token verification
-  return undefined
-}
-
-function getToken(authHeader: string): string {
-  if (!authHeader) throw new Error('No authentication header')
-
-  if (!authHeader.toLowerCase().startsWith('bearer '))
-    throw new Error('Invalid authentication header')
-
-  const split = authHeader.split(' ')
-  const token = split[1]
-
-  return token
-}
+handler.use(
+  secretsManager({
+    cache: true,
+    cacheExpiryInMillis: 60000,
+    awsSdkOptions: { region: 'eu-central-1' },
+    throwOnFailedCall: true,
+    secrets: {
+      AUTH0_SECRET: jwksSecretId
+    }
+  })
+);
