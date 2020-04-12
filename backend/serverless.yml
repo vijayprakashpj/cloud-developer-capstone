@@ -10,6 +10,7 @@ plugins:
   - serverless-plugin-canary-deployments
   - serverless-offline
   - serverless-dynamodb-local
+  - serverless-plugin-existing-s3
 
 package:
   individually: true
@@ -49,6 +50,7 @@ provider:
       Action:
         - s3:PutObject
         - s3:GetObject
+        - s3:PutBucketNotification
       Resource: arn:aws:s3:::${self:provider.environment.ATTACHMENTS_BUCKET}/*
 
 custom:
@@ -168,6 +170,21 @@ functions:
           cors: true
           authorizer: Auth
 
+  todoAttachments:
+    handler: src/lambda/s3/todoAttachments.handler
+    events:
+      - sqs:
+          arn: !GetAtt AttachmentsBucketNotificationsQueue.Arn
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - sqs:ChangeMessageVisibility
+          - sqs:DeleteMessage
+          - sqs:GetQueueAttributes
+          - sqs:ReceiveMessage
+          - sqs:GetQueueUrl
+        Resource: !GetAtt AttachmentsBucketNotificationsQueue.Arn
+
 resources:
   Resources:
     TodoDynamoDBTable:
@@ -215,6 +232,7 @@ resources:
 
     TodoAttachmentsBucket:
       Type: AWS::S3::Bucket
+      DependsOn: AttachmentsBucketNotificationsQueuePolicy
       Properties:
         BucketName: ${self:provider.environment.ATTACHMENTS_BUCKET}
         CorsConfiguration:
@@ -231,6 +249,12 @@ resources:
                 - DELETE
                 - HEAD
               MaxAge: 3000
+        NotificationConfiguration:
+          QueueConfigurations:
+            - Event: s3:ObjectCreated:*
+              Queue: !GetAtt AttachmentsBucketNotificationsQueue.Arn
+            - Event: s3:ObjectRemoved:*
+              Queue: !GetAtt AttachmentsBucketNotificationsQueue.Arn
 
     BucketPolicy:
       Type: AWS::S3::BucketPolicy
@@ -279,3 +303,25 @@ resources:
         Name: ${self:provider.environment.AUTH0_SECRET_ID}
         Description: Auth0 Key ID
         KmsKeyId: !Ref KMSKey
+
+    AttachmentsBucketNotificationsQueue:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: TodoAttachmentsS3Notification
+        VisibilityTimeout: 900 # 15 minutes
+
+    AttachmentsBucketNotificationsQueuePolicy:
+      Type: AWS::SQS::QueuePolicy
+      Properties:
+        Queues:
+          - !Ref AttachmentsBucketNotificationsQueue
+        PolicyDocument:
+          Id: S3NotificationPermission
+          Version: "2012-10-17"
+          Statement:
+            - Sid: S3Notification
+              Effect: Allow
+              Action:
+                - sqs:SendMessage
+              Principal: '*'
+              Resource: !GetAtt AttachmentsBucketNotificationsQueue.Arn
