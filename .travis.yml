@@ -6,7 +6,7 @@ env:
     TF_VERSION=0.12.24
     SLS_CI=true
     SLS_DEBUG=*
-    AUTH0_SECRET_ID=auth0-vprakash-secret
+    AUTH0_SECRET_ID=serverless-todo-vprakash-secret
     ATTACHMENTS_BUCKET=serverless-todo-attachments-vprakash
     ATTACHMENTS_QUEUE=TodoAttachmentsS3Notification
     TODOS_TABLE_NAME=Todos
