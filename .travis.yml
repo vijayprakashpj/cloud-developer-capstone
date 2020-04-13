@@ -58,5 +58,5 @@ jobs:
     - name: prod
       if: branch = master
       env:
-        ENV=prod
+        ENV=dev
         
