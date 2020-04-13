@@ -1,0 +1,62 @@
+language: generic
+
+env:
+  global:
+    TF_INPUT=false
+    TF_VERSION=0.12.24
+    SLS_CI=true
+    SLS_DEBUG=*
+    AUTH0_SECRET_ID=auth0-vprakash-secret
+    ATTACHMENTS_BUCKET=serverless-todo-attachments-vprakash
+    ATTACHMENTS_QUEUE=TodoAttachmentsS3Notification
+    TODOS_TABLE_NAME=Todos
+    TODOS_INDEX_NAME=Todos-UserID-Index
+
+before_install:
+  - export WORKING_DIR=$PWD
+  - curl -sLo /tmp/terraform.zip https://releases.hashicorp.com/terraform/${TF_VERSION}/terraform_${TF_VERSION}_linux_amd64.zip
+  - unzip /tmp/terraform.zip -d /tmp
+  - if [ ! -d ~/bin ]; then mkdir ~/bin; fi
+  - mv /tmp/terraform ~/bin
+  - export PATH="~/bin:$PATH"
+  - python3 -m pip || wget -qO- https://bootstrap.pypa.io/get-pip.py | python3
+  - python3 -m pip install --user awscli
+  - npm i -g serverless
+  - terraform -v
+  - serverless --version
+
+install:
+  - cd $WORKING_DIR/backend
+  - npm ci
+
+script:
+  - cd $WORKING_DIR
+  - terraform init -input=false terraform/
+  - terraform plan
+      -var="env=$ENV"
+      -var="auth0SecretId=$AUTH0_SECRET_ID"
+      -var="attachmentsBucket=$ATTACHMENTS_BUCKET"
+      -var="attachmentsQueue=$ATTACHMENTS_QUEUE"
+      -var="todosTableName=$TODOS_TABLE_NAME"
+      -var="todosIndexName=$TODOS_INDEX_NAME"
+      terraform/
+  - terraform apply -input=false -auto-approve
+      -var="env=$ENV"
+      -var="auth0SecretId=$AUTH0_SECRET_ID"
+      -var="attachmentsBucket=$ATTACHMENTS_BUCKET"
+      -var="attachmentsQueue=$ATTACHMENTS_QUEUE"
+      -var="todosTableName=$TODOS_TABLE_NAME"
+      -var="todosIndexName=$TODOS_INDEX_NAME"
+      terraform/
+
+jobs:
+  include:
+    - name: dev
+      if: NOT branch = master
+      env:
+        ENV=dev
+    - name: prod
+      if: branch = master
+      env:
+        ENV=prod
+        

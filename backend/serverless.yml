@@ -10,9 +10,7 @@ plugins:
   - serverless-plugin-canary-deployments
   - serverless-offline
   - serverless-dynamodb-local
-
-package:
-  individually: true
+  - serverless-plugin-existing-s3
 
 provider:
   name: aws
@@ -27,15 +25,15 @@ provider:
 
   environment:
     # DynamoDB resources
-    TODOS_TABLE_NAME: Todos-${self:provider.stage}
-    TODOS_USERID_INDEX_NAME: Todos-UserID-Index-${self:provider.stage}
+    TODOS_TABLE_NAME: ${self:custom.todosTableName}-${self:provider.stage}
+    TODOS_USERID_INDEX_NAME: ${self:custom.todosIndexName}-${self:provider.stage}
 
     # Attachments S3 bucket and related config
-    ATTACHMENTS_BUCKET: serverless-todo-attachments-vprakash-${self:provider.stage}
+    ATTACHMENTS_BUCKET: ${self:custom.attachmentsBucketName}-${self:provider.stage}
     SIGNED_URL_EXPIRATION: 300
 
     # JWKS secrets
-    AUTH0_SECRET_ID: auth0-vprakash-secret-${self:provider.stage}
+    AUTH0_SECRET_ID: ${self:custom.auth0SecretId}-${self:provider.stage}
     AUTH0_SECRET_KID_FIELD: AUTH0_KID
     AUTH0_SECRET_JWKS_URL_FIELD: AUTH0_JWKS_URL
 
@@ -49,9 +47,23 @@ provider:
       Action:
         - s3:PutObject
         - s3:GetObject
+        - s3:PutBucketNotification
       Resource: arn:aws:s3:::${self:provider.environment.ATTACHMENTS_BUCKET}/*
 
 custom:
+  awsAccountId: ${opt:awsAccountId}
+
+  auth0SecretId: ${opt:auth0SecretId}
+  auth0SecretArn: ${opt:auth0SecretArn}
+  auth0KmsKeyArn: ${opt:auth0KmsKeyArn}
+
+  todosTableName: ${opt:todosTableName}
+  todosIndexName: ${opt:todosIndexName}
+
+  attachmentsQueueName: ${opt:attachmentsQueueName}
+  attachmentsQueueArn: arn:aws:sqs:${self:provider.region}:${self:custom.awsAccountId}:${self:custom.attachmentsQueueName}
+  attachmentsBucketName: ${opt:attachmentsBucketName}
+
   documentation:
     api:
       info:
@@ -74,11 +86,11 @@ functions:
       - Effect: Allow
         Action:
           - secretsmanager:GetSecretValue
-        Resource: !Ref Auth0Secret
+        Resource: ${self:custom.auth0SecretArn}
       - Effect: Allow
         Action:
           - kms:Decrypt
-        Resource: !GetAtt KMSKey.Arn
+        Resource: ${self:custom.auth0KmsKeyArn}
 
   GetTodos:
     handler: src/lambda/http/getTodos.handler
@@ -168,31 +180,23 @@ functions:
           cors: true
           authorizer: Auth
 
+  todoAttachments:
+    handler: src/lambda/s3/todoAttachments.handler
+    events:
+      - sqs:
+          arn: ${self:custom.attachmentsQueueArn}
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - sqs:ChangeMessageVisibility
+          - sqs:DeleteMessage
+          - sqs:GetQueueAttributes
+          - sqs:ReceiveMessage
+          - sqs:GetQueueUrl
+        Resource: ${self:custom.attachmentsQueueArn}
+
 resources:
   Resources:
-    TodoDynamoDBTable:
-      Type: AWS::DynamoDB::Table
-      Properties:
-        AttributeDefinitions:
-          - AttributeName: todoId
-            AttributeType: S
-          - AttributeName: userId
-            AttributeType: S
-        KeySchema:
-          - AttributeName: todoId
-            KeyType: HASH
-          - AttributeName: userId
-            KeyType: RANGE
-        BillingMode: PAY_PER_REQUEST
-        TableName: ${self:provider.environment.TODOS_TABLE_NAME}
-        GlobalSecondaryIndexes:
-          - IndexName: ${self:provider.environment.TODOS_USERID_INDEX_NAME}
-            KeySchema:
-            - AttributeName: userId
-              KeyType: HASH
-            Projection:
-              ProjectionType: ALL
-
     GatewayResponseDefault4XX:
       Type: AWS::ApiGateway::GatewayResponse
       Properties:
@@ -212,10 +216,6 @@ resources:
           Ref: ApiGatewayRestApi
         ValidateRequestBody: true
         ValidateRequestParameters: false
-
-    TodoAttachmentsBucket:
-      Type: AWS::S3::Bucket
-      Properties:
         BucketName: ${self:provider.environment.ATTACHMENTS_BUCKET}
         CorsConfiguration:
           CorsRules:
