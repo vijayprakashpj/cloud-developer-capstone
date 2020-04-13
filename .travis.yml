@@ -32,21 +32,21 @@ install:
 script:
   - cd $WORKING_DIR
   - terraform init -input=false terraform/
-  - terraform plan \
-      -var="env=$ENV" \
-      -var="auth0SecretId=$AUTH0_SECRET_ID" \
-      -var="attachmentsBucket=$ATTACHMENTS_BUCKET" \
-      -var="attachmentsQueue=$ATTACHMENTS_QUEUE" \
-      -var="todosTableName=$TODOS_TABLE_NAME" \
-      -var="todosIndexName=$TODOS_INDEX_NAME" \
+  - terraform plan
+      -var="env=$ENV"
+      -var="auth0SecretId=$AUTH0_SECRET_ID"
+      -var="attachmentsBucket=$ATTACHMENTS_BUCKET"
+      -var="attachmentsQueue=$ATTACHMENTS_QUEUE"
+      -var="todosTableName=$TODOS_TABLE_NAME"
+      -var="todosIndexName=$TODOS_INDEX_NAME"
       terraform/
-  - terraform apply -input=false -auto-approve \
-      -var="env=$ENV" \
-      -var="auth0SecretId=$AUTH0_SECRET_ID" \
-      -var="attachmentsBucket=$ATTACHMENTS_BUCKET" \
-      -var="attachmentsQueue=$ATTACHMENTS_QUEUE" \
-      -var="todosTableName=$TODOS_TABLE_NAME" \
-      -var="todosIndexName=$TODOS_INDEX_NAME" \
+  - terraform apply -input=false -auto-approve
+      -var="env=$ENV"
+      -var="auth0SecretId=$AUTH0_SECRET_ID"
+      -var="attachmentsBucket=$ATTACHMENTS_BUCKET"
+      -var="attachmentsQueue=$ATTACHMENTS_QUEUE"
+      -var="todosTableName=$TODOS_TABLE_NAME"
+      -var="todosIndexName=$TODOS_INDEX_NAME"
       terraform/
 
 jobs:
