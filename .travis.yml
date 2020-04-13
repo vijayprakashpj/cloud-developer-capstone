@@ -1,15 +1,16 @@
 language: generic
 
 env:
-  TF_INPUT=false
-  TF_VERSION=0.12.24
-  SLS_CI=true
-  SLS_DEBUG=*
-  AUTH0_SECRET_ID=auth0-vprakash-secret
-  ATTACHMENTS_BUCKET=serverless-todo-attachments-vprakash
-  ATTACHMENTS_QUEUE=TodoAttachmentsS3Notification
-  TODOS_TABLE_NAME=Todos
-  TODOS_INDEX_NAME=Todos-UserID-Index
+  global:
+    TF_INPUT=false
+    TF_VERSION=0.12.24
+    SLS_CI=true
+    SLS_DEBUG=*
+    AUTH0_SECRET_ID=auth0-vprakash-secret
+    ATTACHMENTS_BUCKET=serverless-todo-attachments-vprakash
+    ATTACHMENTS_QUEUE=TodoAttachmentsS3Notification
+    TODOS_TABLE_NAME=Todos
+    TODOS_INDEX_NAME=Todos-UserID-Index
 
 before_install:
   - export WORKING_DIR=$PWD
