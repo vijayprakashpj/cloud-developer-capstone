@@ -1,0 +1,21 @@
+dist: bionic
+sudo: false
+
+env:
+  TF_INPUT=false
+  TF_VERSION=0.12.24
+  SLS_CI=true
+  SLS_DEBUG=*
+
+before_install:
+  - curl -sLo /tmp/terraform.zip https://releases.hashicorp.com/terraform/${TF_VERSION}/terraform_${TF_VERSION}_linux_amd64.zip
+  - unzip /tmp/terraform.zip -d /tmp
+  - mkdir ~/bin
+  - mv /tmp/terraform ~/bin
+  - export PATH="~/bin:$PATH"
+  - pip install --user awscli
+  - npm i -g serverless
+
+install:
+  - terraform -v
+  - serverless --version
