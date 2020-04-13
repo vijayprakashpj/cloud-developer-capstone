@@ -19,6 +19,7 @@ before_install:
   - if [ ! -d ~/bin ]; then mkdir ~/bin; fi
   - mv /tmp/terraform ~/bin
   - export PATH="~/bin:$PATH"
+  - python3 -m pip || wget -qO- https://bootstrap.pypa.io/get-pip.py | python3
   - python3 -m pip install --user awscli
   - npm i -g serverless
   - terraform -v
