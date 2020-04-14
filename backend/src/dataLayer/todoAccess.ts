@@ -55,6 +55,18 @@ export class TodoAccess {
     return allTodos as TodoItem[]
   }
 
+  public getTodoById = async (todoId: string) : Promise<TodoItem> => {
+    const result = await this.dynamoDBClient.query({
+      TableName: this.todoTable,
+      KeyConditionExpression: 'todoId = :todoId',
+      ExpressionAttributeValues: {
+        ':todoId': todoId
+      }
+    }).promise();
+
+    return result.Items[0] as TodoItem;
+  }
+
   public deleteTodo = async (todoId: string, userId: string) => {
     await this.dynamoDBClient.delete({
       TableName: this.todoTable,

@@ -57,5 +57,13 @@ export const updateTodo = async (todoId: string, updateTodoRequest: UpdateTodoRe
 }
 
 export const updateAttachmentUrl = async (todoId: string, attachmentUrl: string) => {
-  await todoAccess.updateTodoAttachmentUrl(todoId, attachmentUrl);
+  const todoItemToUpdate = await todoAccess.getTodoById(todoId);
+
+  if (!todoItemToUpdate) {
+    throw new Error(`Todo (${todoId}) not found`);
+  }
+
+  todoItemToUpdate.attachmentUrl = attachmentUrl;
+
+  await todoAccess.updateTodo(todoItemToUpdate.todoId, todoItemToUpdate.userId, todoItemToUpdate);
 }
