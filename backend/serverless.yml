@@ -12,6 +12,9 @@ plugins:
   - serverless-dynamodb-local
   - serverless-plugin-existing-s3
 
+package:
+  individually: true
+
 provider:
   name: aws
   runtime: nodejs10.x
@@ -61,7 +64,7 @@ custom:
   todosIndexName: ${opt:todosIndexName}
 
   attachmentsQueueName: ${opt:attachmentsQueueName}
-  attachmentsQueueArn: arn:aws:sqs:${self:provider.region}:${self:custom.awsAccountId}:${self:custom.attachmentsQueueName}
+  attachmentsQueueArn: arn:aws:sqs:${self:provider.region}:${self:custom.awsAccountId}:${self:custom.attachmentsQueueName}-${self:provider.stage}
   attachmentsBucketName: ${opt:attachmentsBucketName}
 
   documentation:
@@ -194,6 +197,11 @@ functions:
           - sqs:ReceiveMessage
           - sqs:GetQueueUrl
         Resource: ${self:custom.attachmentsQueueArn}
+      - Effect: Allow
+        Action:
+          - dynamodb:GetItem
+          - dynamodb:UpdateItem
+        Resource: arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.TODOS_TABLE_NAME}
 
 resources:
   Resources:
@@ -216,94 +224,3 @@ resources:
           Ref: ApiGatewayRestApi
         ValidateRequestBody: true
         ValidateRequestParameters: false
-        BucketName: ${self:provider.environment.ATTACHMENTS_BUCKET}
-        CorsConfiguration:
-          CorsRules:
-            -
-              AllowedOrigins:
-                - '*'
-              AllowedHeaders:
-                - '*'
-              AllowedMethods:
-                - GET
-                - PUT
-                - POST
-                - DELETE
-                - HEAD
-              MaxAge: 3000
-        NotificationConfiguration:
-          QueueConfigurations:
-            - Event: s3:ObjectCreated:*
-              Queue: !GetAtt AttachmentsBucketNotificationsQueue.Arn
-            - Event: s3:ObjectRemoved:*
-              Queue: !GetAtt AttachmentsBucketNotificationsQueue.Arn
-
-    BucketPolicy:
-      Type: AWS::S3::BucketPolicy
-      Properties:
-        PolicyDocument:
-          Id: TodoAttachmentsBucketPolicy
-          Version: "2012-10-17"
-          Statement:
-            - Sid: PublicReadForGetBucketObjects
-              Effect: Allow
-              Principal: '*'
-              Action: 's3:GetObject'
-              Resource: 'arn:aws:s3:::${self:provider.environment.ATTACHMENTS_BUCKET}/*'
-        Bucket: !Ref TodoAttachmentsBucket
-
-    KMSKey:
-      Type: AWS::KMS::Key
-      Properties:
-        Description: KMS key to encrypt Auth0 secret
-        KeyPolicy:
-          Version: '2012-10-17'
-          Id: key-default-1
-          Statement:
-            - Sid: Allow administration of the key
-              Effect: Allow
-              Principal:
-                AWS:
-                  Fn::Join:
-                  - ':'
-                  - - 'arn:aws:iam:'
-                    - Ref: AWS::AccountId
-                    - 'root'
-              Action:
-                - 'kms:*'
-              Resource: '*'
-
-    KMSKeyAlias:
-      Type: AWS::KMS::Alias
-      Properties:
-        AliasName: alias/auth0KeyId-${self:provider.stage}
-        TargetKeyId: !Ref KMSKey
-
-    Auth0Secret:
-      Type: AWS::SecretsManager::Secret
-      Properties:
-        Name: ${self:provider.environment.AUTH0_SECRET_ID}
-        Description: Auth0 Key ID
-        KmsKeyId: !Ref KMSKey
-
-    AttachmentsBucketNotificationsQueue:
-      Type: AWS::SQS::Queue
-      Properties:
-        QueueName: TodoAttachmentsS3Notification
-        VisibilityTimeout: 900 # 15 minutes
-
-    AttachmentsBucketNotificationsQueuePolicy:
-      Type: AWS::SQS::QueuePolicy
-      Properties:
-        Queues:
-          - !Ref AttachmentsBucketNotificationsQueue
-        PolicyDocument:
-          Id: S3NotificationPermission
-          Version: "2012-10-17"
-          Statement:
-            - Sid: S3Notification
-              Effect: Allow
-              Action:
-                - sqs:SendMessage
-              Principal: '*'
-              Resource: !GetAtt AttachmentsBucketNotificationsQueue.Arn

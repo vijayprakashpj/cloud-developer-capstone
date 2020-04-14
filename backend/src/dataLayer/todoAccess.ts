@@ -87,6 +87,22 @@ export class TodoAccess {
       }
     }).promise();
   }
+
+  public updateTodoAttachmentUrl = async (todoId: string, attachmentUrl: string) => {
+    await this.dynamoDBClient.update({
+      TableName: this.todoTable,
+      Key: {
+        todoId: todoId
+      },
+      UpdateExpression: 'SET #attachmentUrl = :attachmentUrl',
+      ExpressionAttributeNames: {
+        '#attachmentUrl': 'attachmentUrl'
+      },
+      ExpressionAttributeValues: {
+        ':attachmentUrl': attachmentUrl || null
+      }
+    }).promise();
+  }
 }
 
 const createDynamoDBClient = () => {

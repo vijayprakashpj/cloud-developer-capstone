@@ -14,3 +14,7 @@ export function getUserId(event: APIGatewayProxyEvent): string {
 
   return parseUserId(jwtToken)
 }
+
+export const getAttachmentUrl = (todoId: string, bucket: string) => {
+  return `https://${bucket}.s3.amazonaws.com/${todoId}`
+}
