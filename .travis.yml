@@ -32,8 +32,8 @@ install:
   - npm ci
 
 script:
-  - cd $WORKING_DIR
-  - terraform init -input=false terraform/
+  - cd $WORKING_DIR/terraform
+  - terraform init -input=false
   - terraform plan
       -var="env=$ENV"
       -var="auth0SecretId=$AUTH0_SECRET_ID"
@@ -41,7 +41,6 @@ script:
       -var="attachmentsQueue=$ATTACHMENTS_QUEUE"
       -var="todosTableName=$TODOS_TABLE_NAME"
       -var="todosIndexName=$TODOS_INDEX_NAME"
-      terraform/
   - terraform apply -input=false -auto-approve
       -var="env=$ENV"
       -var="auth0SecretId=$AUTH0_SECRET_ID"
@@ -49,8 +48,6 @@ script:
       -var="attachmentsQueue=$ATTACHMENTS_QUEUE"
       -var="todosTableName=$TODOS_TABLE_NAME"
       -var="todosIndexName=$TODOS_INDEX_NAME"
-      terraform/
-  - cd $WORKING_DIR/terraform
   - terraform output -json > outputs.json
   - export AUTH0_SECRET_ARN=$(cat outputs.json | jq '.auth0_secret_arn' -r)
   - export AUTH0_KMS_KEY_ARN=$(cat outputs.json | jq '.auth0_kms_key_arn' -r)
