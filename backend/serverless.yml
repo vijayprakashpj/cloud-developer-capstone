@@ -199,8 +199,8 @@ functions:
         Resource: ${self:custom.attachmentsQueueArn}
       - Effect: Allow
         Action:
-          - dynamodb:GetItem
           - dynamodb:UpdateItem
+          - dynamodb:Query
         Resource: arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.TODOS_TABLE_NAME}
 
 resources:
