@@ -1,4 +1,6 @@
 language: generic
+node_js:
+  - 10
 
 env:
   global:
