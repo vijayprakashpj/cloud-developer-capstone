@@ -14,6 +14,7 @@ env:
     TODOS_TABLE_NAME=Todos
     TODOS_INDEX_NAME=Todos-UserID-Index
     AWS_ACCOUNT_ID=699472179837
+    NODE_OPTIONS=--max-old-space-size=4098
 
 before_install:
   - export WORKING_DIR=$PWD
