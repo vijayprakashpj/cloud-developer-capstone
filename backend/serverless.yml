@@ -12,8 +12,8 @@ plugins:
   - serverless-dynamodb-local
   - serverless-plugin-existing-s3
 
-package:
-  individually: true
+# package:
+#   individually: true
 
 provider:
   name: aws
