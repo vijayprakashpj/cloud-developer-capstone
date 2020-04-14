@@ -51,8 +51,8 @@ script:
       -var="todosTableName=$TODOS_TABLE_NAME"
       -var="todosIndexName=$TODOS_INDEX_NAME"
   - terraform output -json > outputs.json
-  - export AUTH0_SECRET_ARN=$(cat outputs.json | jq '.auth0_secret_arn' -r)
-  - export AUTH0_KMS_KEY_ARN=$(cat outputs.json | jq '.auth0_kms_key_arn' -r)
+  - export AUTH0_SECRET_ARN=$(cat outputs.json | jq '.auth0_secret_arn.value' -r)
+  - export AUTH0_KMS_KEY_ARN=$(cat outputs.json | jq '.auth0_kms_key_arn.value' -r)
   - cd $WORKING_DIR/backend
   - sls deploy -v
       --stage $ENV
