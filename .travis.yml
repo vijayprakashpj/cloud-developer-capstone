@@ -22,7 +22,7 @@ before_install:
   - export PATH="~/bin:$PATH"
   - python3 -m pip || wget -qO- https://bootstrap.pypa.io/get-pip.py | python3
   - python3 -m pip install --user awscli
-  - apt-get install -y jq
+  - sudo apt-get install -y jq
   - npm i -g serverless
   - terraform -v
   - serverless --version
