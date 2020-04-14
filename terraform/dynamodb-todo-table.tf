@@ -19,10 +19,4 @@ resource "aws_dynamodb_table" "todo" {
     hash_key        = "userId"
     projection_type = "ALL"
   }
-
-  local_secondary_index {
-    name            = "${var.todosLocalIndexName}-${var.env}"
-    hash_key        = "todoId"
-    projection_type = "ALL"
-  }
 }
