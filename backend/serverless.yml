@@ -12,8 +12,8 @@ plugins:
   - serverless-dynamodb-local
   - serverless-plugin-existing-s3
 
-# package:
-#   individually: true
+package:
+  individually: true
 
 provider:
   name: aws
@@ -40,6 +40,8 @@ provider:
     AUTH0_SECRET_KID_FIELD: AUTH0_KID
     AUTH0_SECRET_JWKS_URL_FIELD: AUTH0_JWKS_URL
 
+    # SQS bucket config
+    ATTACHMENTS_QUEUE_URL: ${self:custom.attachmentsQueueUrl}
   iamRoleStatements:
     - Effect: Allow
       Action:
@@ -66,6 +68,7 @@ custom:
   attachmentsQueueName: ${opt:attachmentsQueueName}
   attachmentsQueueArn: arn:aws:sqs:${self:provider.region}:${self:custom.awsAccountId}:${self:custom.attachmentsQueueName}-${self:provider.stage}
   attachmentsBucketName: ${opt:attachmentsBucketName}
+  attachmentsQueueUrl: ${opt:attachmentsQueueUrl}
 
   documentation:
     api:

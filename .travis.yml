@@ -54,6 +54,7 @@ script:
   - terraform output -json > outputs.json
   - export AUTH0_SECRET_ARN=$(cat outputs.json | jq '.auth0_secret_arn.value' -r)
   - export AUTH0_KMS_KEY_ARN=$(cat outputs.json | jq '.auth0_kms_key_arn.value' -r)
+  - export SQS_QUEUE_URL=$(cat outputs.json | jq '.sqs_queue_url.value' -r)
   - cd $WORKING_DIR/backend
   - sls deploy -v
       --stage $ENV
@@ -65,6 +66,7 @@ script:
       --todosIndexName $TODOS_INDEX_NAME
       --attachmentsQueueName $ATTACHMENTS_QUEUE
       --attachmentsBucketName $ATTACHMENTS_BUCKET
+      --attachmentsQueueUrl $SQS_QUEUE_URL
 
 jobs:
   include:
