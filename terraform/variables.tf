@@ -13,3 +13,5 @@ variable "attachmentsQueue" {}
 variable "todosTableName" {}
 
 variable "todosIndexName" {}
+
+variable "todosLocalIndexName" {}
