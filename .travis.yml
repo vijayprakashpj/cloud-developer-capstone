@@ -11,7 +11,7 @@ env:
     ATTACHMENTS_QUEUE=TodoAttachmentsS3Notification
     TODOS_TABLE_NAME=Todos
     TODOS_INDEX_NAME=Todos-UserID-Index
-    TODOS_LOCAL_INDEX_NAME=Todos-TodoId-Index
+    AWS_ACCOUNT_ID=699472179837
 
 before_install:
   - export WORKING_DIR=$PWD
@@ -22,6 +22,7 @@ before_install:
   - export PATH="~/bin:$PATH"
   - python3 -m pip || wget -qO- https://bootstrap.pypa.io/get-pip.py | python3
   - python3 -m pip install --user awscli
+  - apt-get install -y jq
   - npm i -g serverless
   - terraform -v
   - serverless --version
@@ -40,7 +41,6 @@ script:
       -var="attachmentsQueue=$ATTACHMENTS_QUEUE"
       -var="todosTableName=$TODOS_TABLE_NAME"
       -var="todosIndexName=$TODOS_INDEX_NAME"
-      -var="todosLocalIndexName=$TODOS_LOCAL_INDEX_NAME"
       terraform/
   - terraform apply -input=false -auto-approve
       -var="env=$ENV"
@@ -49,8 +49,22 @@ script:
       -var="attachmentsQueue=$ATTACHMENTS_QUEUE"
       -var="todosTableName=$TODOS_TABLE_NAME"
       -var="todosIndexName=$TODOS_INDEX_NAME"
-      -var="todosLocalIndexName=$TODOS_LOCAL_INDEX_NAME"
       terraform/
+  - cd $WORKING_DIR/terraform
+  - terraform output -json > outputs.json
+  - export AUTH0_SECRET_ARN=$(cat outputs.json | jq '.auth0_secret_arn' -r)
+  - export AUTH0_KMS_KEY_ARN=$(cat outputs.json | jq '.auth0_kms_key_arn' -r)
+  - cd $WORKING_DIR/backend
+  - sls deploy -v
+      --stage $ENV
+      --awsAccountId $AWS_ACCOUNT_ID
+      --auth0SecretId $AUTH0_SECRET_ID
+      --auth0SecretArn $AUTH0_SECRET_ARN
+      --auth0KmsKeyArn $AUTH0_KMS_KEY_ARN
+      --todosTableName $TODOS_TABLE_NAME
+      --todosIndexName $TODOS_INDEX_NAME
+      --attachmentsQueueName $ATTACHMENTS_QUEUE
+      --attachmentsBucketName $ATTACHMENTS_BUCKET
 
 jobs:
   include:
