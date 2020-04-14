@@ -11,6 +11,7 @@ env:
     ATTACHMENTS_QUEUE=TodoAttachmentsS3Notification
     TODOS_TABLE_NAME=Todos
     TODOS_INDEX_NAME=Todos-UserID-Index
+    TODOS_LOCAL_INDEX_NAME=Todos-TodoId-Index
 
 before_install:
   - export WORKING_DIR=$PWD
@@ -39,6 +40,7 @@ script:
       -var="attachmentsQueue=$ATTACHMENTS_QUEUE"
       -var="todosTableName=$TODOS_TABLE_NAME"
       -var="todosIndexName=$TODOS_INDEX_NAME"
+      -var="todosLocalIndexName=$TODOS_LOCAL_INDEX_NAME"
       terraform/
   - terraform apply -input=false -auto-approve
       -var="env=$ENV"
@@ -47,6 +49,7 @@ script:
       -var="attachmentsQueue=$ATTACHMENTS_QUEUE"
       -var="todosTableName=$TODOS_TABLE_NAME"
       -var="todosIndexName=$TODOS_INDEX_NAME"
+      -var="todosLocalIndexName=$TODOS_LOCAL_INDEX_NAME"
       terraform/
 
 jobs:
@@ -59,4 +62,3 @@ jobs:
       if: branch = master
       env:
         ENV=dev
-        
