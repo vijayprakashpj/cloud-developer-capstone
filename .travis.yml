@@ -1,4 +1,6 @@
-language: generic
+language: node_js
+node_js:
+  - 10
 
 env:
   global:
@@ -11,6 +13,8 @@ env:
     ATTACHMENTS_QUEUE=TodoAttachmentsS3Notification
     TODOS_TABLE_NAME=Todos
     TODOS_INDEX_NAME=Todos-UserID-Index
+    AWS_ACCOUNT_ID=699472179837
+    NODE_OPTIONS=--max-old-space-size=4098
 
 before_install:
   - export WORKING_DIR=$PWD
@@ -21,6 +25,7 @@ before_install:
   - export PATH="~/bin:$PATH"
   - python3 -m pip || wget -qO- https://bootstrap.pypa.io/get-pip.py | python3
   - python3 -m pip install --user awscli
+  - sudo apt-get install -y jq
   - npm i -g serverless
   - terraform -v
   - serverless --version
@@ -30,8 +35,8 @@ install:
   - npm ci
 
 script:
-  - cd $WORKING_DIR
-  - terraform init -input=false terraform/
+  - cd $WORKING_DIR/terraform
+  - terraform init -input=false
   - terraform plan
       -var="env=$ENV"
       -var="auth0SecretId=$AUTH0_SECRET_ID"
@@ -39,7 +44,6 @@ script:
       -var="attachmentsQueue=$ATTACHMENTS_QUEUE"
       -var="todosTableName=$TODOS_TABLE_NAME"
       -var="todosIndexName=$TODOS_INDEX_NAME"
-      terraform/
   - terraform apply -input=false -auto-approve
       -var="env=$ENV"
       -var="auth0SecretId=$AUTH0_SECRET_ID"
@@ -47,7 +51,24 @@ script:
       -var="attachmentsQueue=$ATTACHMENTS_QUEUE"
       -var="todosTableName=$TODOS_TABLE_NAME"
       -var="todosIndexName=$TODOS_INDEX_NAME"
-      terraform/
+  - terraform output -json > outputs.json
+  - export AUTH0_SECRET_ARN=$(cat outputs.json | jq '.auth0_secret_arn.value' -r)
+  - export AUTH0_KMS_KEY_ARN=$(cat outputs.json | jq '.auth0_kms_key_arn.value' -r)
+  - export SQS_QUEUE_URL=$(cat outputs.json | jq '.sqs_queue_url.value' -r)
+  - export DYNAMODB_STREAM_ARN=$(cat outputs.json | jq '.dynamodb_stream_arn.value' -r)
+  - cd $WORKING_DIR/backend
+  - sls deploy -v
+      --stage $ENV
+      --awsAccountId $AWS_ACCOUNT_ID
+      --auth0SecretId $AUTH0_SECRET_ID
+      --auth0SecretArn $AUTH0_SECRET_ARN
+      --auth0KmsKeyArn $AUTH0_KMS_KEY_ARN
+      --todosTableName $TODOS_TABLE_NAME
+      --todosIndexName $TODOS_INDEX_NAME
+      --attachmentsQueueName $ATTACHMENTS_QUEUE
+      --attachmentsBucketName $ATTACHMENTS_BUCKET
+      --attachmentsQueueUrl $SQS_QUEUE_URL
+      --todoStreamArn $DYNAMODB_STREAM_ARN
 
 jobs:
   include:
@@ -59,4 +80,3 @@ jobs:
       if: branch = master
       env:
         ENV=dev
-        

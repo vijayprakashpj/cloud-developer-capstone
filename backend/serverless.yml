@@ -12,6 +12,9 @@ plugins:
   - serverless-dynamodb-local
   - serverless-plugin-existing-s3
 
+# package:
+#   individually: true
+
 provider:
   name: aws
   runtime: nodejs10.x
@@ -37,6 +40,8 @@ provider:
     AUTH0_SECRET_KID_FIELD: AUTH0_KID
     AUTH0_SECRET_JWKS_URL_FIELD: AUTH0_JWKS_URL
 
+    # SQS bucket config
+    ATTACHMENTS_QUEUE_URL: ${self:custom.attachmentsQueueUrl}
   iamRoleStatements:
     - Effect: Allow
       Action:
@@ -59,10 +64,12 @@ custom:
 
   todosTableName: ${opt:todosTableName}
   todosIndexName: ${opt:todosIndexName}
+  todoStreamArn: ${opt:todoStreamArn}
 
   attachmentsQueueName: ${opt:attachmentsQueueName}
-  attachmentsQueueArn: arn:aws:sqs:${self:provider.region}:${self:custom.awsAccountId}:${self:custom.attachmentsQueueName}
+  attachmentsQueueArn: arn:aws:sqs:${self:provider.region}:${self:custom.awsAccountId}:${self:custom.attachmentsQueueName}-${self:provider.stage}
   attachmentsBucketName: ${opt:attachmentsBucketName}
+  attachmentsQueueUrl: ${opt:attachmentsQueueUrl}
 
   documentation:
     api:
@@ -180,8 +187,8 @@ functions:
           cors: true
           authorizer: Auth
 
-  todoAttachments:
-    handler: src/lambda/s3/todoAttachments.handler
+  attachmentUpload:
+    handler: src/lambda/s3/attachmentUpload.handler
     events:
       - sqs:
           arn: ${self:custom.attachmentsQueueArn}
@@ -194,7 +201,33 @@ functions:
           - sqs:ReceiveMessage
           - sqs:GetQueueUrl
         Resource: ${self:custom.attachmentsQueueArn}
+      - Effect: Allow
+        Action:
+          - dynamodb:UpdateItem
+          - dynamodb:Query
+        Resource: arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.TODOS_TABLE_NAME}
 
+  attachmentRemove:
+    handler: src/lambda/dynamodb/attachmentRemove.handler
+    events:
+      - stream:
+          type: dynamodb
+          arn: ${self:custom.todoStreamArn}
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - s3:HeadObject
+          - s3:GetObject
+          - s3:GetObjectAcl
+          - s3:DeleteObject
+        Resource: arn:aws:s3:::${self:provider.environment.ATTACHMENTS_BUCKET}/*
+      - Effect: Allow
+        Action:
+          - dynamodb:GetRecords
+          - dynamodb:GetShardIterator
+          - dynamodb:DescribeStream
+          - dynamodb:ListStreams
+        Resource: ${self:custom.todoStreamArn}
 resources:
   Resources:
     GatewayResponseDefault4XX:
@@ -216,66 +249,3 @@ resources:
           Ref: ApiGatewayRestApi
         ValidateRequestBody: true
         ValidateRequestParameters: false
-        BucketName: ${self:provider.environment.ATTACHMENTS_BUCKET}
-        CorsConfiguration:
-          CorsRules:
-            -
-              AllowedOrigins:
-                - '*'
-              AllowedHeaders:
-                - '*'
-              AllowedMethods:
-                - GET
-                - PUT
-                - POST
-                - DELETE
-                - HEAD
-              MaxAge: 3000
-
-    BucketPolicy:
-      Type: AWS::S3::BucketPolicy
-      Properties:
-        PolicyDocument:
-          Id: TodoAttachmentsBucketPolicy
-          Version: "2012-10-17"
-          Statement:
-            - Sid: PublicReadForGetBucketObjects
-              Effect: Allow
-              Principal: '*'
-              Action: 's3:GetObject'
-              Resource: 'arn:aws:s3:::${self:provider.environment.ATTACHMENTS_BUCKET}/*'
-        Bucket: !Ref TodoAttachmentsBucket
-
-    KMSKey:
-      Type: AWS::KMS::Key
-      Properties:
-        Description: KMS key to encrypt Auth0 secret
-        KeyPolicy:
-          Version: '2012-10-17'
-          Id: key-default-1
-          Statement:
-            - Sid: Allow administration of the key
-              Effect: Allow
-              Principal:
-                AWS:
-                  Fn::Join:
-                  - ':'
-                  - - 'arn:aws:iam:'
-                    - Ref: AWS::AccountId
-                    - 'root'
-              Action:
-                - 'kms:*'
-              Resource: '*'
-
-    KMSKeyAlias:
-      Type: AWS::KMS::Alias
-      Properties:
-        AliasName: alias/auth0KeyId-${self:provider.stage}
-        TargetKeyId: !Ref KMSKey
-
-    Auth0Secret:
-      Type: AWS::SecretsManager::Secret
-      Properties:
-        Name: ${self:provider.environment.AUTH0_SECRET_ID}
-        Description: Auth0 Key ID
-        KmsKeyId: !Ref KMSKey

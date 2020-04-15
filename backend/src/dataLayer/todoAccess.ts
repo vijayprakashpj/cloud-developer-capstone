@@ -55,6 +55,18 @@ export class TodoAccess {
     return allTodos as TodoItem[]
   }
 
+  public getTodoById = async (todoId: string) : Promise<TodoItem> => {
+    const result = await this.dynamoDBClient.query({
+      TableName: this.todoTable,
+      KeyConditionExpression: 'todoId = :todoId',
+      ExpressionAttributeValues: {
+        ':todoId': todoId
+      }
+    }).promise();
+
+    return result.Items[0] as TodoItem;
+  }
+
   public deleteTodo = async (todoId: string, userId: string) => {
     await this.dynamoDBClient.delete({
       TableName: this.todoTable,
@@ -84,6 +96,22 @@ export class TodoAccess {
         ':dueDate': todo.dueDate,
         ':done': todo.done,
         ':attachmentUrl': todo.attachmentUrl || null
+      }
+    }).promise();
+  }
+
+  public updateTodoAttachmentUrl = async (todoId: string, attachmentUrl: string) => {
+    await this.dynamoDBClient.update({
+      TableName: this.todoTable,
+      Key: {
+        todoId: todoId
+      },
+      UpdateExpression: 'SET #attachmentUrl = :attachmentUrl',
+      ExpressionAttributeNames: {
+        '#attachmentUrl': 'attachmentUrl'
+      },
+      ExpressionAttributeValues: {
+        ':attachmentUrl': attachmentUrl || null
       }
     }).promise();
   }

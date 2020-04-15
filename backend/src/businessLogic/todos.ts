@@ -56,15 +56,14 @@ export const updateTodo = async (todoId: string, updateTodoRequest: UpdateTodoRe
   await todoAccess.updateTodo(todoId, userId, todoToUpdate);
 }
 
-export const updateAttachmentUrl = async (todoId: string, attachmentUrl: string, event: APIGatewayEvent) => {
-  const userId = getUserId(event);
-  const todo = await todoAccess.getTodo(todoId, userId);
+export const updateAttachmentUrl = async (todoId: string, attachmentUrl: string) => {
+  const todoItemToUpdate = await todoAccess.getTodoById(todoId);
 
-  if (!todo) {
+  if (!todoItemToUpdate) {
     throw new Error(`Todo (${todoId}) not found`);
   }
 
-  todo.attachmentUrl = attachmentUrl;
+  todoItemToUpdate.attachmentUrl = attachmentUrl;
 
-  await todoAccess.updateTodo(todoId, userId, todo);
+  await todoAccess.updateTodo(todoItemToUpdate.todoId, todoItemToUpdate.userId, todoItemToUpdate);
 }

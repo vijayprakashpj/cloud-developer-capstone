@@ -4,7 +4,6 @@ import * as AWSXRay  from 'aws-xray-sdk'
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda'
 import * as middy from 'middy';
 import { cors } from 'middy/middlewares';
-import { updateAttachmentUrl } from '../../businessLogic/todos';
 import { createLogger } from '../../utils/logger';
 import { inspect } from 'util';
 
@@ -23,7 +22,6 @@ export const handler = middy(async (event: APIGatewayProxyEvent): Promise<APIGat
   try {
     const todoId = event.pathParameters.todoId;
     const uploadUrl = getS3SignedUrl(todoId);
-    await updateAttachmentUrl(todoId, getS3Url(todoId), event);
 
     return {
       statusCode: 200,
@@ -51,8 +49,4 @@ const getS3SignedUrl = (todoId: string) => {
     Key: todoId,
     Expires: signedUrlExpiry
   });
-}
-
-const getS3Url = (todoId: string) => {
-  return `https://${attachmentsBucket}.s3.amazonaws.com/${todoId}`
 }
