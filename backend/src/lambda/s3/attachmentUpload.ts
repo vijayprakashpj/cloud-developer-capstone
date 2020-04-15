@@ -24,9 +24,9 @@ export const handler = async (event: SQSEvent) => {
             const eventName: string = s3Record.eventName;
 
             if (eventName.startsWith("ObjectCreated")) {
-                updateAttachmentUrl(key, getAttachmentUrl(key, attachmentsBucket));
+                await updateAttachmentUrl(key, getAttachmentUrl(key, attachmentsBucket));
             } else if (eventName.startsWith("ObjectRemoved")) {
-                updateAttachmentUrl(key, getAttachmentUrl(key, null));
+                await updateAttachmentUrl(key, getAttachmentUrl(key, null));
             }
 
         }
