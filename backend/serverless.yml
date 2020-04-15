@@ -186,8 +186,8 @@ functions:
           cors: true
           authorizer: Auth
 
-  attachmentsUpload:
-    handler: src/lambda/s3/attachmentsUpload.handler
+  attachmentUpload:
+    handler: src/lambda/s3/attachmentUpload.handler
     events:
       - sqs:
           arn: ${self:custom.attachmentsQueueArn}
@@ -206,8 +206,8 @@ functions:
           - dynamodb:Query
         Resource: arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.TODOS_TABLE_NAME}
 
-  attachmentsRemove:
-    handler: src/lambda/dynamodb/attachmentsRemove.handler
+  attachmentRemove:
+    handler: src/lambda/dynamodb/attachmentRemove.handler
     events:
       - stream:
         type: dynamodb
