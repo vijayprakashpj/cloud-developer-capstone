@@ -12,8 +12,8 @@ plugins:
   - serverless-dynamodb-local
   - serverless-plugin-existing-s3
 
-package:
-  individually: true
+# package:
+#   individually: true
 
 provider:
   name: aws
@@ -211,8 +211,8 @@ functions:
     handler: src/lambda/dynamodb/attachmentRemove.handler
     events:
       - stream:
-        type: dynamodb
-        arn: ${self:custom.todoStreamArn}
+          type: dynamodb
+          arn: ${self:custom.todoStreamArn}
     iamRoleStatements:
       - Effect: Allow
         Action:
