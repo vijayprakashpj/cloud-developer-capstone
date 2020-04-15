@@ -9,3 +9,7 @@ output "auth0_kms_key_arn" {
 output "sqs_queue_url" {
   value = data.aws_sqs_queue.attachments_notification_data.url
 }
+
+output "dynamodb_stream_arn" {
+  value = aws_dynamodb_table.todo.stream_arn
+}

@@ -64,6 +64,7 @@ custom:
 
   todosTableName: ${opt:todosTableName}
   todosIndexName: ${opt:todosIndexName}
+  todoStreamArn: ${opt:todoStreamArn}
 
   attachmentsQueueName: ${opt:attachmentsQueueName}
   attachmentsQueueArn: arn:aws:sqs:${self:provider.region}:${self:custom.awsAccountId}:${self:custom.attachmentsQueueName}-${self:provider.stage}
@@ -211,7 +212,7 @@ functions:
     events:
       - stream:
         type: dynamodb
-        arn: ${self:custom.attachmentsQueueArn}
+        arn: ${self:custom.todoStreamArn}
     iamRoleStatements:
       - Effect: Allow
         Action:
