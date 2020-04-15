@@ -186,8 +186,8 @@ functions:
           cors: true
           authorizer: Auth
 
-  todoAttachments:
-    handler: src/lambda/s3/todoAttachments.handler
+  attachmentsUpload:
+    handler: src/lambda/s3/attachmentsUpload.handler
     events:
       - sqs:
           arn: ${self:custom.attachmentsQueueArn}
@@ -206,6 +206,20 @@ functions:
           - dynamodb:Query
         Resource: arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.TODOS_TABLE_NAME}
 
+  attachmentsRemove:
+    handler: src/lambda/dynamodb/attachmentsRemove.handler
+    events:
+      - stream:
+        type: dynamodb
+        arn: ${self:custom.attachmentsQueueArn}
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - s3:HeadObject
+          - s3:GetObject
+          - s3:GetObjectAcl
+          - s3:DeleteObject
+        Resource: arn:aws:s3:::${self:provider.environment.ATTACHMENTS_BUCKET}/*
 resources:
   Resources:
     GatewayResponseDefault4XX:

@@ -5,7 +5,7 @@ import { updateAttachmentUrl } from '../../businessLogic/todos';
 import { getAttachmentUrl } from '../utils';
 import * as AWS from 'aws-sdk';
 
-const logger = createLogger('todoAttachments');
+const logger = createLogger('attachmentUpload');
 const sqs = new AWS.SQS();
 
 const attachmentsBucket = process.env.ATTACHMENTS_BUCKET;
