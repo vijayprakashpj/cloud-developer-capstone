@@ -221,6 +221,13 @@ functions:
           - s3:GetObjectAcl
           - s3:DeleteObject
         Resource: arn:aws:s3:::${self:provider.environment.ATTACHMENTS_BUCKET}/*
+      - Effect: Allow
+        Action:
+          - dynamodb:GetRecords
+          - dynamodb:GetShardIterator
+          - dynamodb:DescribeStream
+          - dynamodb:ListStreams
+        Resource: ${self:custom.todoStreamArn}
 resources:
   Resources:
     GatewayResponseDefault4XX:
