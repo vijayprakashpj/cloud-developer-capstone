@@ -30,3 +30,8 @@ resource "aws_secretsmanager_secret" "auth0" {
   description   = "Auth0 Key ID"
   kms_key_id    = aws_kms_key.auth0_kms_key.id
 }
+
+resource "aws_secretsmanager_secret_version" "auth0_secret" {
+  secret_id     = aws_secretsmanager_secret.auth0.id
+  secret_string = file("files/auth0-secret.json")
+}

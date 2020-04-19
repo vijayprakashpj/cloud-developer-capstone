@@ -37,6 +37,7 @@ install:
 script:
   - cd $WORKING_DIR/terraform
   - terraform init -input=false
+  - envsubst < files/auth0-secret.json.tmpl > files/auth0-secret.json
   - terraform plan
       -var="env=$ENV"
       -var="auth0SecretId=$AUTH0_SECRET_ID"
